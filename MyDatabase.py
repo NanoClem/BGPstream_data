@@ -133,3 +133,31 @@ class MyDatabase :
         mycursor.execute(query, val)
         self.mydb.commit()
         print(mycursor.rowcount, "record inserted")
+
+
+
+    def insertMultiple(self, tableName, toInsert = []) :
+        """
+        Meme principe que la fontion insert(),
+        mais pour l'insertion multiple
+        PARAM tableName : nom de la table
+        PARAM toInsert : description des donnees a inserer
+        """
+        mycursor = self.mydb.cursor()
+        val     = []                            # valeurs a inserer
+        STRval  = ""                            # mise en forme str de la patie "VALUES" de la requete
+        columns = ""                            # colonnes concernees par l'insertion
+        for data in toInsert :
+            for key,value in data.items() :
+                columns += key
+                val.append((str(value),))           # ajout dans la liste des valeurs
+                STRval  += "%s"
+                if key != list(toInsert.keys())[-1] :   # si on est pos en fin de liste
+                    columns += ", "
+                    STRval  += ", "
+
+        query = "INSERT INTO " + tableName + "(" + columns + ")" + " VALUES(" + STRval + ")"
+        # print(query, val)
+        # mycursor.executemany(query, val)
+        # self.mydb.commit()
+        # print(mycursor.rowcount, "records inserted")

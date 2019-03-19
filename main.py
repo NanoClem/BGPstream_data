@@ -23,11 +23,23 @@ def main() :
     }
 
     # DONNEES A INSERER
-    toInsert = {
+    #SIMPLE
+    userData = {
         "idUser"   : 55545256,
         "pseudo"   : "Kikoo",
         "location" : "France"
     }
+    #MULTIPLE
+    userTweets = [
+        {
+            "idTweet" : 4544547,
+            "content" : "koukou"
+        },
+        {
+            "idTweet" : 5632548,
+            "content" : "c moa"
+        }
+    ]
 
 
     db = MyDatabase()
@@ -40,7 +52,8 @@ def main() :
     #OPERATION SUR LA BDD
     # db.createTable("user", user)
     # db.createTable("tweet", tweet)
-    db.insert("User", toInsert)
+    # db.insert("user", userData)
+    db.insertMultiple("tweet", userTweets)
 
 
 
