@@ -58,6 +58,28 @@ class MyDatabase :
 
 
 
+    def formatInsert(self, columns = []) :
+        """
+        Formatage str pour la requete d'insertion de donnees
+        """
+        ret = []
+        strCol = ""
+        strVal = ""
+        #FORMATAGE DES COLONNES ET DE LA PARTIE "VALUES"
+        for c in columns :
+            strCol += c
+            strVal += "%s"
+            if c != list(columns)[-1] :     # si on ne traite pas la derniere colonne
+                strCol += ","
+                strVal += ","
+
+        ret.append(strCol)
+        ret.append(strVal)
+        return ret
+
+
+
+
     def connectToDB(self, DBname) :
         """
         Connexion a la base de donnee
@@ -71,7 +93,7 @@ class MyDatabase :
             passwd = self.password,
             database = DBname
         )
-        print("Successfuly connected to database %s" %DBname)
+        print("Successfuly connected to database %s \n" %DBname)
 
 
 
@@ -117,22 +139,20 @@ class MyDatabase :
         PARAM toInsert : description des donnees a inserer
         """
         mycursor = self.mydb.cursor()
-        val     = ()                            # valeurs a inserer
-        STRval  = ""                            # mise en forme str de la patie "VALUES" de la requete
-        columns = ""                            # colonnes concernees par l'insertion
+        val     = ()                                    # valeurs a inserer
+        format  = self.formatInsert(toInsert.keys())    # mise en forme str de la requete
+        columns = format[0]                             # colonnes concernees par l'insertion
+        STRval  = format[1]                             # formatage str de la partie "VALUES"
+
+        # DONNEES A INSERER
         for key,value in toInsert.items() :
-            columns += key
             val     += (str(value),)
-            STRval  += "%s"
-            if key != list(toInsert.keys())[-1] :   # si on est pos en fin de liste
-                columns += ", "
-                STRval  += ", "
 
         query = "INSERT INTO " + tableName + "(" + columns + ")" + " VALUES(" + STRval + ")"   # attention : pas generique
         print(query, val)
         mycursor.execute(query, val)
         self.mydb.commit()
-        print(mycursor.rowcount, "record inserted")
+        print(mycursor.rowcount, "record inserted \n")
 
 
 
@@ -144,20 +164,21 @@ class MyDatabase :
         PARAM toInsert : description des donnees a inserer
         """
         mycursor = self.mydb.cursor()
-        val     = []                            # valeurs a inserer
-        STRval  = ""                            # mise en forme str de la patie "VALUES" de la requete
-        columns = ""                            # colonnes concernees par l'insertion
+        vals    = []                                            # valeurs a inserer
+        dataVal = ()
+        format  = self.formatInsert(list(toInsert[0].keys()))   # mise en forme str de la requete
+        columns = format[0]                                     # colonnes concernees par l'insertion
+        STRval  = format[1]                                     # formatage str de la partie "VALUES"
+
+        # DONNEES A INSERER
         for data in toInsert :
             for key,value in data.items() :
-                columns += key
-                val.append((str(value),))           # ajout dans la liste des valeurs
-                STRval  += "%s"
-                if key != list(toInsert.keys())[-1] :   # si on est pos en fin de liste
-                    columns += ", "
-                    STRval  += ", "
+                dataVal += (str(value),)        # recuperation des donnes a inserer
+            vals.append(dataVal)                # ajout dans la liste des valeurs
+            dataVal = ()
 
         query = "INSERT INTO " + tableName + "(" + columns + ")" + " VALUES(" + STRval + ")"
-        # print(query, val)
-        # mycursor.executemany(query, val)
-        # self.mydb.commit()
-        # print(mycursor.rowcount, "records inserted")
+        print(query, vals)
+        mycursor.executemany(query, vals)
+        self.mydb.commit()
+        print(mycursor.rowcount, "records inserted \n")
