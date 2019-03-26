@@ -149,10 +149,8 @@ class MyDatabase :
             val     += (str(value),)
 
         query = "INSERT INTO " + tableName + "(" + columns + ")" + " VALUES(" + STRval + ")"   # attention : pas generique
-        print(query, val)
         mycursor.execute(query, val)
         self.mydb.commit()
-        print(mycursor.rowcount, "record inserted \n")
 
 
 
@@ -178,7 +176,5 @@ class MyDatabase :
             dataVal = ()
 
         query = "INSERT INTO " + tableName + "(" + columns + ")" + " VALUES(" + STRval + ")"
-        print(query, vals)
         mycursor.executemany(query, vals)
         self.mydb.commit()
-        print(mycursor.rowcount, "records inserted \n")

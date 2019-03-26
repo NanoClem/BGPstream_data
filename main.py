@@ -1,5 +1,7 @@
 from MyDatabase import MyDatabase
 
+from twitter import TwitterAPI
+from twitter import StreamListener
 
 
 def main() :
@@ -42,7 +44,7 @@ def main() :
     ]
 
 
-    db = MyDatabase()
+    db = MyDatabase("localhost", "root", "", "3306")
 
     #CREATION ET CONNECTION A LA BDD
     db.connectToMySQL()
@@ -53,7 +55,13 @@ def main() :
     # db.createTable("user", user)
     # db.createTable("tweet", tweet)
     # db.insert("user", userData)
-    db.insertMultiple("tweet", userTweets)
+    # db.insertMultiple("tweet", userTweets)
+
+    twitterAPI = TwitterAPI()
+    streamListener = StreamListener()
+
+    # streamListener.useStreamByWords(twitterAPI, ['usa'])
+    twitterAPI.getAllTweetsFromUser('bgpstream', db)
 
 
 
