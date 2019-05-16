@@ -1,6 +1,7 @@
 import mysql.connector as mysql
 
 
+
 class MyDatabase :
     """
     Cette classe représente un DOM mysql en python de manière a
@@ -130,7 +131,7 @@ class MyDatabase :
         mycursor.execute("CREATE TABLE %s (%s)" %(tableName,query))
         print("Successfuly created table %s" %tableName)
 
-
+        #CREATE TABLE `proj632_project1`.`bgpstream` ( `idEvent` TINYTEXT NOT NULL , `type` TINYTEXT NOT NULL , `country` TINYTEXT NOT NULL , `nbPrefix` TINYTEXT NOT NULL , `idASHS` TINYTEXT NOT NULL , `idAS` TINYTEXT NOT NULL , `prefix` TINYTEXT NOT NULL , `name` TINYTEXT NOT NULL ) ENGINE = MyISAM;
 
     def insert(self, tableName, toInsert = {}) :
         """
@@ -177,4 +178,24 @@ class MyDatabase :
 
         query = "INSERT INTO " + tableName + "(" + columns + ")" + " VALUES(" + STRval + ")"
         mycursor.executemany(query, vals)
+        self.mydb.commit()
+
+    def insert(self, tableName, toInsert = {}) :
+        """
+        Insertion d'une ligne dans la table
+        PARAM tableName : nom de la table
+        PARAM toInsert : description des donnees a inserer
+        """
+        mycursor = self.mydb.cursor()
+        val     = ()                                    # valeurs a inserer
+        format  = self.formatInsert(toInsert.keys())    # mise en forme str de la requete
+        columns = format[0]                             # colonnes concernees par l'insertion
+        STRval  = format[1]                             # formatage str de la partie "VALUES"
+
+        # DONNEES A INSERER
+        for key,value in toInsert.items() :
+            val     += (str(value),)
+
+        query = "INSERT IGNORE INTO " + tableName + "(" + columns + ")" + " VALUES(" + STRval + ")"   # attention : pas generique
+        mycursor.execute(query, val)
         self.mydb.commit()

@@ -2,7 +2,11 @@ from MyDatabase import MyDatabase
 
 from twitter import TwitterAPI
 from twitter import StreamListener
+from utils import Utils
 
+import threading
+
+db = None
 
 def main() :
     #INFORMATIONS SUR LA BDD
@@ -48,8 +52,10 @@ def main() :
 
     #CREATION ET CONNECTION A LA BDD
     db.connectToMySQL()
-    db.createDatabase(TwiDatabase)
-    db.connectToDB(TwiDatabase)
+    db.createDatabase("proj632_project1")
+    db.connectToDB("proj632_project1")
+
+    MyDatabase.mydb = db
 
     #OPERATION SUR LA BDD
     # db.createTable("user", user)
@@ -57,10 +63,15 @@ def main() :
     # db.insert("user", userData)
     # db.insertMultiple("tweet", userTweets)
 
+    #The BGP Stream part using the search method
     twitterAPI = TwitterAPI()
     streamListener = StreamListener()
 
-    # streamListener.useStreamByWords(twitterAPI, ['usa'])
+    #Here we want to use the Stream method and we are puting it into a Thread so it will run by itself while the program is doing things...
+    x = threading.Thread(target=streamListener.useStreamByUser, args=(twitterAPI,'3237083798'))
+    x.start()
+
+    #While here we gather the old information
     twitterAPI.getAllTweetsFromUser('bgpstream', db)
 
 

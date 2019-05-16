@@ -2,6 +2,51 @@ import json
 
 import re
 
+from MyDatabase import MyDatabase
+
+import urllib.request, json
+import threading
+
+
+class Utils:
+
+    def insertDataIntoTheDataBase(status):
+        formatedJson = TwitterStatusInformations()
+        formatedJson.getInfosFromTwitterStatus(status)
+
+        # Send the formated string to the database
+
+        formatedString = formatedJson.getFormatedStringToSendToDatabase()
+
+        try:
+            if formatedString != None:
+                MyDatabase.mydb.insert("bgpstream", formatedString)
+
+                if (formatedJson.type == "OT"):
+
+                    #We use a threah not to be stuck here
+                    x = threading.Thread(target=Utils.processBGPPrefixData, args=(formatedJson.idAS,))
+                    x.start()
+        except:
+            pass
+
+    def processBGPPrefixData(idAs):
+        url = "https://api.bgpview.io/asn/" + re.sub("AS", "", idAs) + "/prefixes"
+
+        with urllib.request.urlopen(url) as url:
+            data = json.loads(url.read().decode())
+
+            #Now we have all the ip v4 prefixes in one json we can work...
+            prefixeList = data.get('data').get('ipv4_prefixes')
+
+            #If the data alread exists it doesnt matter it wont be added
+
+            thestr = {"idAS":idAs, "json":prefixeList}
+
+            MyDatabase.insert('ipv4_prefixes', thestr)
+
+
+
 class TwitterStatusInformations:
 
     def __init__(self):
@@ -13,167 +58,101 @@ class TwitterStatusInformations:
         self.idAS = None
         self.prefix = None
         self.name = None
+        self.timestamp = None
 
     def getInfosFromTwitterStatus(self, twitterStatus):
         string = twitterStatus._json.get('text')
         string = re.sub(r'[,]+', ',', string)
         stringSplited = string.split(",")
 
-
-        """
-
         self.type = stringSplited[1]
+        self.timestamp = twitterStatus._json.get("created_at")
 
-        i = 2;
+        try:
 
-        if(self.type == 'HJ'):
-            self.idAS = stringSplited[i].split(" ")[2]
-            self.prefix = stringSplited[i].split(" ")[3]
+            if (self.type == 'HJ'):
 
-            i+=1;
+                self.idAS = stringSplited[2].split(" ")[2]
+                self.prefix = stringSplited[2].split(" ")[3]
 
-            self.name = stringSplited[i]
-
-            if (stringSplited[i] == " Inc."):
-                i+=1
-
-            if (stringSplited[i] != "-"):
-                self.country = stringSplited[i]
-
-            i += 1
-
-            if (stringSplited[i] == "-"):
-                i += 1
-
-            self.idASHS = stringSplited[i].split(" ")[1]
-
-            i+=1
-
-            for ii in twitterStatus._json['entities']['urls']:
-                self.idEvent = ii['display_url']
-                self.idEvent = re.sub(r'(bgpstream.com/event/)', '', self.idEvent)
-
-                if not self.idEvent.isdigit():
-                    self.idEvent = None
-        else:
+                if stringSplited[3] != ' ':
+                    self.name = stringSplited[3]
 
 
-            self.idAS = stringSplited[i]
+                #We use the lineId to check if the line is a country code or a dash or a Inc. word written
+                lineId = 4
 
-            i+=1
+                if stringSplited[4] == ' Inc.':
+                    lineId += 1 #If there is a Inc. written we "jump" this line
 
-            self.name = stringSplited[i]
+                #This is the line where the Country code is suposed to be, if the len if 3 this means the tag is a country and then we add it
+                if len(stringSplited[lineId]) == 3:
+                    self.country = re.sub(r'[ ]', '', stringSplited[lineId])
+                #Else this means we have either a dash or a blank, thus we do nothing
 
-            i+=1
-
-            self.country = stringSplited[i]
-
-            i+=1
-
-            if stringSplited[i] == '-':
-                i+=1
+                stringSplited = stringSplited[- (len(stringSplited) - lineId):]
 
 
-            try:
-                self.nbPrefix = stringSplited[i].split(" ")[2]
-            except:
-                pass
+                if(stringSplited[0] == '-'):
+                    stringSplited = stringSplited[- (len(stringSplited) - 1):]
 
-            for ii in twitterStatus._json['entities']['urls']:
-                self.idEvent = ii['display_url']
-                self.idEvent = re.sub(r'(bgpstream.com/event/)', '', self.idEvent)
 
-                if not self.idEvent.isdigit():
-                    self.idEvent = None
+                if(len(stringSplited[0]) == 3):
+                    stringSplited = stringSplited[- (len(stringSplited) - 1):]
 
-        self.country = re.sub(r'[ ]*', '', self.country)
 
-        """
+                if (stringSplited[0] == '-'):
+                    stringSplited = stringSplited[- (len(stringSplited) - 1):]
 
-        self.type = stringSplited[1]
 
-        if (self.type == 'HJ'):
+                self.idASHS = stringSplited[0].split(" ")[1]
 
-            self.idAS = stringSplited[2].split(" ")[2]
-            self.prefix = stringSplited[2].split(" ")[3]
+                for ii in twitterStatus._json['entities']['urls']:
+                    self.idEvent = ii['display_url']
+                    self.idEvent = re.sub(r'(bgpstream.com/event/)', '', self.idEvent)
 
-            if stringSplited[3] != ' ':
+                    if not self.idEvent.isdigit():
+                        self.idEvent = None
+            else:
+
+                #If this is not an Id we pass because it is useless
+                if(not stringSplited[2].isdigit()):
+                    return
+
+
+                self.idAS = stringSplited[2]
+
+
+
+                if(stringSplited[3] == '-' or stringSplited[3] == '--No Registry Entry--'):
+                    return
+
+
                 self.name = stringSplited[3]
 
+                if(len(stringSplited[4]) > 3):
+                    return
 
-            #We use the lineId to check if the line is a country code or a dash or a Inc. word written
-            lineId = 4
+                self.country = re.sub(r'[ ]', '', stringSplited[4])
 
-            if stringSplited[4] == ' Inc.':
-                lineId += 1 #If there is a Inc. written we "jump" this line
+                self.nbPrefix = stringSplited[6].split(" ")[2]
 
-            #This is the line where the Country code is suposed to be, if the len if 3 this means the tag is a country and then we add it
-            if len(stringSplited[lineId]) == 3:
-                self.country = re.sub(r'[ ]', '', stringSplited[lineId])
-            #Else this means we have either a dash or a blank, thus we do nothing
+                for ii in twitterStatus._json['entities']['urls']:
+                    self.idEvent = ii['display_url']
+                    self.idEvent = re.sub(r'(bgpstream.com/event/)', '', self.idEvent)
 
-            stringSplited = stringSplited[- (len(stringSplited) - lineId):]
+                    if not self.idEvent.isdigit():
+                        self.idEvent = None
 
-
-            if(stringSplited[0] == '-'):
-                stringSplited = stringSplited[- (len(stringSplited) - 1):]
-
-
-            if(len(stringSplited[0]) == 3):
-                stringSplited = stringSplited[- (len(stringSplited) - 1):]
-
-
-            if (stringSplited[0] == '-'):
-                stringSplited = stringSplited[- (len(stringSplited) - 1):]
-
-
-            self.idASHS = stringSplited[0].split(" ")[1]
-
-            for ii in twitterStatus._json['entities']['urls']:
-                self.idEvent = ii['display_url']
-                self.idEvent = re.sub(r'(bgpstream.com/event/)', '', self.idEvent)
-
-                if not self.idEvent.isdigit():
-                    self.idEvent = None
-        else:
-
-            #If this is not an Id we pass because it is useless
-            if(not stringSplited[2].isdigit()):
-                return
-
-
-            self.idAS = stringSplited[2]
-
-
-
-            if(stringSplited[3] == '-' or stringSplited[3] == '--No Registry Entry--'):
-                return
-
-
-            self.name = stringSplited[3]
-
-            if(len(stringSplited[4]) > 3):
-                return
-
-            self.country = re.sub(r'[ ]', '', stringSplited[4])
-
-            self.nbPrefix = stringSplited[6].split(" ")[2]
-
-            for ii in twitterStatus._json['entities']['urls']:
-                self.idEvent = ii['display_url']
-                self.idEvent = re.sub(r'(bgpstream.com/event/)', '', self.idEvent)
-
-                if not self.idEvent.isdigit():
-                    self.idEvent = None
-
-        #print(self.idEvent,self.type,self.country,self.nbPrefix,self.idASHS,self.idAS,self.prefix,self.name)
-
+            #print(self.idEvent,self.type,self.country,self.nbPrefix,self.idASHS,self.idAS,self.prefix,self.name)
+        except:
+            print("[IGNORE] Data Bad Format Error...")
 
     def getFormatedStringToSendToDatabase(self):
 
         if (self.idEvent != None): #and len(self.country) == 2):
 
-            print(self.name)
+            #print(self.name)
 
             string = {
                 "idEvent" : self.idEvent,
@@ -183,7 +162,8 @@ class TwitterStatusInformations:
                 "idASHS" : self.idASHS,
                 "idAS" : self.idAS,
                 "prefix" : self.prefix,
-                "name" : self.name
+                "name" : self.name,
+                "timestamp" : self.timestamp
             }
 
             return string

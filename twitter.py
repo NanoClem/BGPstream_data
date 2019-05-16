@@ -1,8 +1,8 @@
 import json
 
 import tweepy
+from utils import Utils
 
-from utils import TwitterStatusInformations
 
 class TwitterAPI:
 
@@ -25,9 +25,9 @@ class TwitterAPI:
 
     def getAllTweetsFromUser(self, user, db):
         for tweet in tweepy.Cursor(self.getAPI().user_timeline, id=user).items():
-            #print(tweet._json['entities']['urls'])
-            #for i in tweet._json['entities']['urls']:
-                #print(i['display_url'])
+
+            """
+            
             formatedJson = TwitterStatusInformations()
             formatedJson.getInfosFromTwitterStatus(tweet)
 
@@ -41,14 +41,16 @@ class TwitterAPI:
                     db.insert("bgpstream", formatedString)
             except:
                 pass
+            """
 
+            Utils.insertDataIntoTheDataBase(tweet)
 
 
 class StreamListener(tweepy.StreamListener):
 
     def on_status(self, status):
-        #print(status._json.get('text'))
-        print(status)
+
+        Utils.insertDataIntoTheDataBase(status)
 
     def on_error(self, status_code):
         if status_code == 420:
@@ -63,3 +65,4 @@ class StreamListener(tweepy.StreamListener):
         tweetStream.filter(track=words)
 
 # 3237083798 is The id of bgpstream
+# 1090251522473160705 isthe Id of the Missy Project
