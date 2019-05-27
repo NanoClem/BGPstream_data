@@ -8,7 +8,7 @@ class MyDatabase :
     pouvoir effectuer les traitements de base sur une BDD
     """
 
-    def __init__(self, _host = "localhost", _user="root", _password="root", _port="3306") :
+    def __init__(self, _host = "localhost", _user="root", _password="", _port="3306", _table="table"):
         """
         CONSTRUCTEUR de la classe MyDatabase
         ATTRIBUTE host : nom d'hote de la bdd
@@ -20,7 +20,7 @@ class MyDatabase :
         self.user     = _user
         self.password = _password
         self.port     = _port
-        self.mydb     = None
+        self.table     = _table
 
 
 
@@ -32,7 +32,8 @@ class MyDatabase :
             host = self.host,
             port = self.port,
             user = self.user,
-            passwd = self.password
+            passwd = self.password,
+            database = self.table
         )
 
 
@@ -176,7 +177,7 @@ class MyDatabase :
             vals.append(dataVal)                # ajout dans la liste des valeurs
             dataVal = ()
 
-        query = "INSERT INTO " + tableName + "(" + columns + ")" + " VALUES(" + STRval + ")"
+        query = "INSERT IGNORE INTO " + tableName + "(" + columns + ")" + " VALUES(" + STRval + ")"
         mycursor.executemany(query, vals)
         self.mydb.commit()
 
